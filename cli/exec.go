@@ -139,7 +139,7 @@ func ConfigureExecCommand(app *kingpin.Application, a *AwsVault) {
 		if err != nil {
 			return err
 		}
-		keyring, err := a.Keyring()
+		keyring, sessionKeyring, err := a.Keyrings()
 		if err != nil {
 			return err
 		}
@@ -165,9 +165,9 @@ func ConfigureExecCommand(app *kingpin.Application, a *AwsVault) {
 				NoSession:       input.NoSession,
 			}
 
-			err = ExportCommand(exportCommandInput, f, keyring)
+			err = ExportCommand(exportCommandInput, f, keyring, sessionKeyring)
 		} else {
-			exitcode, err = ExecCommand(input, f, keyring)
+			exitcode, err = ExecCommand(input, f, keyring, sessionKeyring)
 		}
 
 		app.FatalIfError(err, "exec")
@@ -179,7 +179,7 @@ func ConfigureExecCommand(app *kingpin.Application, a *AwsVault) {
 	})
 }
 
-func ExecCommand(input ExecCommandInput, f *vault.ConfigFile, keyring keyring.Keyring) (exitcode int, err error) {
+func ExecCommand(input ExecCommandInput, f *vault.ConfigFile, keyring, sessionKeyring keyring.Keyring) (exitcode int, err error) {
 	if os.Getenv("AWS_VAULT") != "" {
 		return 0, fmt.Errorf("running in an existing aws-vault subshell; 'exit' from the subshell or unset AWS_VAULT to force")
 	}
@@ -197,7 +197,7 @@ func ExecCommand(input ExecCommandInput, f *vault.ConfigFile, keyring keyring.Ke
 		return 0, fmt.Errorf("Error loading config: %w", err)
 	}
 
-	credsProvider, err := vault.NewTempCredentialsProvider(config, &vault.CredentialKeyring{Keyring: keyring}, input.NoSession, false)
+	credsProvider, err := vault.NewTempCredentialsProvider(config, &vault.CredentialKeyring{Keyring: keyring}, sessionKeyring, input.NoSession, false)
 	if err != nil {
 		return 0, fmt.Errorf("Error getting temporary credentials: %w", err)
 	}
